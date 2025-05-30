@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Send, Bot, User, Sparkles } from "lucide-react";
+import { Send, Bot, User, Menu, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface Message {
@@ -24,6 +24,7 @@ const Index = () => {
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -103,96 +104,96 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative">
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-r from-cyan-100/10 to-blue-100/10 rounded-full blur-3xl"></div>
+    <div className="min-h-screen bg-gray-900 text-white flex">
+      {/* Sidebar */}
+      <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} fixed inset-y-0 left-0 z-50 w-64 bg-gray-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
+        <div className="flex items-center justify-between h-16 px-4 bg-gray-700">
+          <h2 className="text-lg font-semibold text-white">ChatGPT</h2>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-gray-400 hover:text-white"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+        <nav className="mt-8 px-4">
+          <div className="space-y-2">
+            <button className="w-full text-left px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors">
+              Nova conversa
+            </button>
+            <div className="text-gray-400 text-sm mt-6 mb-2">Histórico</div>
+            <button className="w-full text-left px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors text-sm">
+              Conversa anterior 1
+            </button>
+            <button className="w-full text-left px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors text-sm">
+              Conversa anterior 2
+            </button>
+          </div>
+        </nav>
       </div>
 
-      {/* Header */}
-      <header className="relative z-10 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-800">Data Privacy AI</h1>
-                <p className="text-slate-500 text-sm font-medium">Smart Data And Analytics</p>
-              </div>
-            </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <nav className="flex space-x-6">
-                <a href="#" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Início</a>
-                <a href="#" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Soluções</a>
-                <a href="#" className="text-slate-600 hover:text-blue-600 font-medium transition-colors">Contato</a>
-              </nav>
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col lg:ml-0">
+        {/* Header */}
+        <header className="bg-gray-800 border-b border-gray-700 h-16 flex items-center px-4">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden mr-4 text-gray-400 hover:text-white"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <h1 className="text-xl font-semibold">Data Privacy AI</h1>
+          <div className="ml-auto flex items-center space-x-4">
+            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+              <span className="text-sm font-semibold">U</span>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-slate-800 mb-3">Assistente de Privacidade de Dados</h2>
-          <p className="text-slate-600 text-lg">Tire suas dúvidas sobre LGPD, GDPR e proteção de dados</p>
-        </div>
-
-        {/* Chat Container */}
-        <Card className="bg-white/70 backdrop-blur-md border-slate-200/50 shadow-xl rounded-2xl overflow-hidden">
-          {/* Messages Area */}
-          <div className="h-[500px] overflow-y-auto p-6 space-y-6">
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-6">
             {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
-              >
-                <div className={`flex items-start space-x-3 max-w-[80%] ${message.isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${
-                    message.isUser 
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500' 
-                      : 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                  }`}>
-                    {message.isUser ? (
-                      <User className="w-5 h-5 text-white" />
-                    ) : (
-                      <Bot className="w-5 h-5 text-white" />
-                    )}
-                  </div>
-                  <div className={`rounded-2xl px-4 py-3 shadow-sm ${
-                    message.isUser
-                      ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-                      : 'bg-white border border-slate-200 text-slate-700'
-                  }`}>
-                    <p className="text-sm leading-relaxed">{message.text}</p>
-                    <p className={`text-xs mt-2 opacity-70 ${
-                      message.isUser ? 'text-blue-100' : 'text-slate-500'
+              <div key={message.id} className="mb-6">
+                <div className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex items-start space-x-3 max-w-[80%] ${message.isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      message.isUser 
+                        ? 'bg-purple-600' 
+                        : 'bg-green-600'
                     }`}>
-                      {message.timestamp.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </p>
+                      {message.isUser ? (
+                        <User className="w-4 h-4 text-white" />
+                      ) : (
+                        <Bot className="w-4 h-4 text-white" />
+                      )}
+                    </div>
+                    <div className={`rounded-lg px-4 py-3 ${
+                      message.isUser
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-700 text-gray-100'
+                    }`}>
+                      <p className="text-sm leading-relaxed">{message.text}</p>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
             
             {isLoading && (
-              <div className="flex justify-start animate-fade-in">
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
-                    <Bot className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="bg-white border border-slate-200 rounded-2xl px-4 py-3 shadow-sm">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="mb-6">
+                <div className="flex justify-start">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center">
+                      <Bot className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="bg-gray-700 rounded-lg px-4 py-3">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -201,35 +202,35 @@ const Index = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Message Input */}
-          <div className="border-t border-slate-200/50 bg-slate-50/50 p-6">
-            <form onSubmit={handleSendMessage} className="flex space-x-4">
+          {/* Input Area */}
+          <div className="border-t border-gray-700 bg-gray-800 p-4">
+            <form onSubmit={handleSendMessage} className="flex space-x-3">
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Digite sua pergunta sobre privacidade de dados..."
-                className="flex-1 bg-white border-slate-300 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl px-4 py-3 text-slate-700 placeholder:text-slate-400"
+                placeholder="Envie uma mensagem..."
+                className="flex-1 bg-gray-700 border-gray-600 text-white placeholder:text-gray-400 focus:border-purple-500 focus:ring-purple-500"
                 disabled={isLoading}
               />
               <Button
                 type="submit"
                 disabled={isLoading || !inputValue.trim()}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl px-6 py-3 shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 disabled:opacity-50"
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4" />
               </Button>
             </form>
           </div>
-        </Card>
-
-        {/* Footer Info */}
-        <div className="text-center mt-8">
-          <p className="text-slate-500 text-sm">
-            Desenvolvido por <span className="font-semibold text-slate-600">Smart Data And Analytics</span> • 
-            Conformidade com Regulamentações Globais
-          </p>
         </div>
       </div>
+
+      {/* Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
