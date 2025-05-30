@@ -103,6 +103,17 @@ const Index = () => {
     }
   };
 
+  const handleNewConversation = () => {
+    setMessages([
+      {
+        id: '1',
+        text: 'Olá! Sou seu assistente de IA especializado em Privacidade de Dados. Como posso ajudá-lo hoje?',
+        isUser: false,
+        timestamp: new Date()
+      }
+    ]);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white flex">
       {/* Sidebar */}
@@ -118,15 +129,11 @@ const Index = () => {
         </div>
         <nav className="mt-8 px-4">
           <div className="space-y-2">
-            <button className="w-full text-left px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors">
+            <button 
+              onClick={handleNewConversation}
+              className="w-full text-left px-3 py-2 rounded-lg bg-gray-700 text-white hover:bg-gray-600 transition-colors"
+            >
               Nova conversa
-            </button>
-            <div className="text-gray-400 text-sm mt-6 mb-2">Histórico</div>
-            <button className="w-full text-left px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors text-sm">
-              Conversa anterior 1
-            </button>
-            <button className="w-full text-left px-3 py-2 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors text-sm">
-              Conversa anterior 2
             </button>
           </div>
         </nav>
