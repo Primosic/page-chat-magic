@@ -69,7 +69,7 @@ const Index = () => {
   const query = async (data: { question: string }) => {
     try {
       const response = await fetch(
-        "http://localhost:3001/api/v1/prediction/af3926a4-1e41-4be9-b066-a8deb1f8125f",
+        "http://177.131.143.123:3001/api/v1/prediction/4ba56f30-d33d-48c0-9156-1e83611f261d",
         {
           method: "POST",
           headers: {
