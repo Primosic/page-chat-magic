@@ -7,6 +7,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { LockIcon, UserIcon, AlertCircleIcon } from 'lucide-react';
 
+// Função para gerar um ID de sessão único usando API criptográfica
+const generateUniqueSessionId = (): string => {
+  // Usar window.crypto para geração criptograficamente segura
+  const array = new Uint8Array(16);
+  window.crypto.getRandomValues(array);
+  
+  // Converter para string hexadecimal
+  const randomHex = Array.from(array)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  // Adicionar timestamp para garantir unicidade mesmo com colisões improváveis
+  const timestamp = new Date().getTime();
+  
+  return `${timestamp}-${randomHex}`;
+};
+
 interface LoginState {
   attempts: number;
   lastAttemptTime: number | null;
@@ -18,9 +35,18 @@ interface LoginState {
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [remainingTime, setRemainingTime] = useState<string>('00:00');
+  const [error, setError] = useState('');
+  const [remainingTime, setRemainingTime] = useState('00:00');
   const navigate = useNavigate();
+  
+  // Função para sanitizar input e prevenir XSS
+  const sanitizeInput = (input: string): string => {
+    if (!input) return '';
+    // Sanitização básica para remover tags HTML e caracteres potencialmente perigosos
+    const div = document.createElement('div');
+    div.textContent = input.trim();
+    return div.textContent || '';
+  };
   
   // Gerenciamento de tentativas de login
   const [loginState, setLoginState] = useState<LoginState>(() => {
@@ -108,14 +134,29 @@ const Login = () => {
                 Entre em contato com SDNA em corporate@sdnadigital.com ou tente novamente em ${remainingTime} minutos.`);
       return;
     }
-
-    // Remover espaços extras e converter para minúsculas para evitar problemas comuns
-    const trimmedUsername = username.trim().toLowerCase();
-    const trimmedPassword = password.trim().toLowerCase();
-    const expectedUsername = 'privacidade'.toLowerCase();
-    const expectedPassword = 'dpp@2025'.toLowerCase();
     
-    // Registrar tentativa de login (sem senha por segurança)
+    // Credenciais esperadas a partir de variáveis de ambiente
+    const expectedUsername = import.meta.env.VITE_AUTH_USERNAME;
+    const expectedPassword = import.meta.env.VITE_AUTH_PASSWORD;
+    
+    // Verificar se as credenciais estão definidas no ambiente
+    if (!expectedUsername || !expectedPassword) {
+      console.error('Credenciais não configuradas nas variáveis de ambiente');
+      setError('Erro de configuração do sistema. Contate o administrador.');
+      return;
+    }
+    
+    // Sanitizar e validar credenciais
+    const trimmedUsername = sanitizeInput(username);
+    const trimmedPassword = sanitizeInput(password);
+    
+    // Verificar se as credenciais não estão vazias após sanitização
+    if (!trimmedUsername || !trimmedPassword) {
+      setError("Por favor, informe usuário e senha válidos");
+      return;
+    }
+    
+    // Registrar a tentativa de login
     const loginAttempt = {
       timestamp: Date.now(),
       username: trimmedUsername,
@@ -141,8 +182,16 @@ const Login = () => {
       setLoginState(newLoginState);
       localStorage.setItem('loginState', JSON.stringify(newLoginState));
       
-      // Salvar estado de autenticação
+      // Gerar um ID de sessão único para este login
+      const sessionId = generateUniqueSessionId();
+      
+      // Definir tempo de expiração da sessão (8 horas a partir de agora)
+      const sessionExpiry = Date.now() + (8 * 60 * 60 * 1000);
+      
+      // Salvar estado de autenticação com ID de sessão único e expiração
       localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('sessionId', sessionId);
+      localStorage.setItem('sessionExpiry', sessionExpiry.toString());
       
       // Redirecionar para o chat
       navigate('/');

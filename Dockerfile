@@ -15,8 +15,10 @@ RUN npm ci --no-audit --no-fund --loglevel=error
 COPY . .
 
 # Substituir a URL da API para o endereço de produção
-RUN sed -i 's|http://localhost:3001|http://177.131.143.123:3001|g' src/pages/Index.tsx
+#RUN sed -i 's|http://localhost:3001|http://177.131.143.123:3001|g' src/pages/Index.tsx
 
+# Define a variável de ambiente para uso no Vite
+ENV VITE_API_ENDPOINT=/api/v1/prediction/4ba56f30-d33d-48c0-9156-1e83611f261d
 # Gerar build de produção
 RUN npm run build
 

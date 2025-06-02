@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { config } from '../config/env';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -37,7 +38,11 @@ const Index = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Verifica se está em ambiente de teste antes de chamar scrollIntoView
+    // No ambiente de teste, import.meta.env.MODE será 'test'
+    if (messagesEndRef.current && messagesEndRef.current.scrollIntoView && import.meta.env.MODE !== 'test') {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   };
 
   useEffect(() => {
@@ -58,7 +63,25 @@ const Index = () => {
   
   // Função para lidar com o logout
   const handleLogout = () => {
+    // Remover todos os dados relacionados a autenticação e sessão
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('sessionId');
+    localStorage.removeItem('sessionExpiry');
+    
+    // Manter o loginState para controle de tentativas de login
+    // mas remover qualquer informação sensível de sessão
+    const loginState = JSON.parse(localStorage.getItem('loginState') || '{}');
+    if (loginState && loginState.loginAttempts) {
+      // Limpar dados sensíveis mas manter contagem de tentativas
+      const sanitizedLoginState = {
+        ...loginState,
+        // Remover histórico detalhado de tentativas para proteger privacidade
+        loginAttempts: []
+      };
+      localStorage.setItem('loginState', JSON.stringify(sanitizedLoginState));
+    }
+    
     toast({
       title: "Logout realizado",
       description: "Você foi desconectado com sucesso."
@@ -66,22 +89,183 @@ const Index = () => {
     navigate('/login');
   };
 
+  // Verificar se a sessão expirou e renovar se necessário
+  const checkSessionValidity = (): string => {
+    const sessionId = localStorage.getItem('sessionId');
+    const sessionExpiry = localStorage.getItem('sessionExpiry');
+    const isAuthenticated = localStorage.getItem('isAuthenticated');
+    
+    // Se não estiver autenticado, redirecionar para login
+    if (!isAuthenticated) {
+      navigate('/login');
+      return '';
+    }
+    
+    const now = Date.now();
+    
+    // Se a sessão expirou ou não existe expiração, renovar a sessão
+    if (!sessionExpiry || now >= parseInt(sessionExpiry)) {
+      return renewSession();
+    }
+    
+    // Se não existe ID de sessão, criar um novo
+    if (!sessionId) {
+      return generateSessionIdSecure();
+    }
+    
+    return sessionId;
+  };
+  
+  // Renovar a sessão com novo ID e timestamp
+  const renewSession = (): string => {
+    const newSessionId = generateSessionIdSecure();
+    const newExpiry = Date.now() + (8 * 60 * 60 * 1000); // 8 horas
+    
+    localStorage.setItem('sessionId', newSessionId);
+    localStorage.setItem('sessionExpiry', newExpiry.toString());
+    
+    return newSessionId;
+  };
+  
+  // Função para gerar ID de sessão criptograficamente seguro
+  const generateSessionIdSecure = (): string => {
+    // Usar window.crypto para geração criptograficamente segura
+    const array = new Uint8Array(16);
+    window.crypto.getRandomValues(array);
+    
+    // Converter para string hexadecimal
+    const randomHex = Array.from(array)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    // Adicionar timestamp para garantir unicidade
+    const timestamp = new Date().getTime();
+    
+    const newSessionId = `${timestamp}-${randomHex}`;
+    localStorage.setItem('sessionId', newSessionId);
+    return newSessionId;
+  };
+  
   const query = async (data: { question: string }) => {
     try {
+      // Verificar validade da sessão antes de cada requisição
+      const sessionId = checkSessionValidity();
+      
+      // Se não há sessão válida, interromper a requisição
+      if (!sessionId) {
+        throw new Error('Sessão inválida ou expirada');
+      }
+      
+      const apiUrl = config.api.getFullUrl();
+      
+      // Preparar o body da requisição para logging e envio
+      const requestBody = {
+        ...data,
+        sessionId // Incluir ID de sessão no corpo da requisição
+      };
+      
+      // Headers para a requisição
+      const headers = {
+        "Content-Type": "application/json",
+        "X-Session-ID": sessionId,
+        "X-Session-Expiry": localStorage.getItem('sessionExpiry') || ''
+      };
+      
+      // Log detalhado da requisição para depuração
+      console.log('=== DETALHES DA REQUISIÇÃO ===');
+      console.log(`URL: ${apiUrl}`);
+      console.log('Headers:', headers);
+      console.log('Body:', requestBody);
+      
+      // Usa a URL da API definida nas configurações de ambiente
       const response = await fetch(
-        "http://177.131.143.123:3001/api/v1/prediction/4ba56f30-d33d-48c0-9156-1e83611f261d",
+        apiUrl,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(data)
+          headers: headers,
+          body: JSON.stringify(requestBody),
+          mode: 'cors',
+          credentials: 'same-origin' // Altera para 'include' se o backend suporta cookies cross-origin
         }
       );
-      const result = await response.json();
-      return result;
+      
+      // Log detalhado da resposta para depuração
+      console.log('=== DETALHES DA RESPOSTA ===');
+      console.log(`Status: ${response.status} ${response.statusText}`);
+      console.log('Headers:', Object.fromEntries([...response.headers.entries()]));
+      
+      // Verificar se a resposta foi bem sucedida
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Não foi possível ler o corpo da resposta');
+        console.error('Corpo da resposta de erro:', errorText);
+        throw new Error(`Erro na comunicação com a API: ${response.status} ${response.statusText}`);
+      }
+      
+      // Ler a resposta como texto para garantir que conseguimos processar o conteúdo
+      // independentemente do formato
+      const textResponse = await response.text();
+      console.log('=== RESPOSTA BRUTA DA API ===');
+      console.log(textResponse);
+      
+      // Verificar se temos uma resposta com conteúdo
+      if (!textResponse || !textResponse.trim()) {
+        console.warn('Resposta da API está vazia');
+        return { text: 'A resposta da API está vazia. Por favor, tente novamente.' };
+      }
+      
+      // Primeiro, verificar se a resposta parece ser um JSON
+      const trimmedResponse = textResponse.trim();
+      const looksLikeJson = (
+        (trimmedResponse.startsWith('{') && trimmedResponse.endsWith('}')) || 
+        (trimmedResponse.startsWith('[') && trimmedResponse.endsWith(']'))
+      );
+      
+      // Se parece ser JSON, tenta fazer o parse
+      if (looksLikeJson) {
+        try {
+          const jsonResult = JSON.parse(trimmedResponse);
+          console.log('Resposta processada como JSON:', jsonResult);
+          return jsonResult;
+        } catch (error) {
+          console.warn('Resposta parece JSON, mas parse falhou:', error);
+          // Continua para tratamento como texto
+        }
+      }
+      
+      // Se chegou aqui, a resposta não é um JSON válido
+      // Tratar como texto plano e retornar em formato compatível
+      console.log('Tratando resposta como texto plano');
+      
+      // Verifica se a resposta não é HTML ou outro formato não desejado
+      const isHtml = trimmedResponse.includes('<html') || 
+                    trimmedResponse.includes('<!DOCTYPE') || 
+                    (trimmedResponse.includes('<') && trimmedResponse.includes('</'));
+      
+      if (isHtml) {
+        console.warn('Resposta parece ser HTML, isso pode indicar um erro');
+        return { text: 'A API retornou HTML em vez do formato esperado. Verifique a configuração do servidor.' };
+      }
+      
+      // Limita o tamanho da resposta para não sobrecarregar a interface
+      const maxLength = 2000;
+      const truncatedResponse = trimmedResponse.length > maxLength
+        ? trimmedResponse.substring(0, maxLength) + '... (texto truncado)'
+        : trimmedResponse;
+      
+      return { text: truncatedResponse };
     } catch (error) {
       console.error('Error querying agent:', error);
+      
+      // Se o erro for de sessão, redirecionar para login
+      if (error.message === 'Sessão inválida ou expirada') {
+        toast({
+          title: "Sessão expirada",
+          description: "Sua sessão expirou. Por favor, faça login novamente.",
+          variant: "destructive",
+        });
+        navigate('/login');
+      }
+      
       throw error;
     }
   };
@@ -104,10 +288,37 @@ const Index = () => {
 
     try {
       const response = await query({ question: inputValue });
+      console.log('Resposta processada da API:', JSON.stringify(response));
+      
+      // Determinar o texto da resposta com base no formato retornado
+      let responseText = 'Recebi sua mensagem, mas não tenho certeza de como responder.';
+      
+      if (typeof response === 'string') {
+        // Caso a resposta seja uma string direta
+        responseText = response;
+      } else if (response && typeof response === 'object') {
+        // Testar diversas propriedades possíveis em ordem de prioridade
+        responseText = response.text || response.answer || response.message || 
+                      response.content || response.response || response.result;
+        
+        // Se ainda não encontrou, mas temos uma propriedade que parece ser o texto principal
+        if (!responseText) {
+          const possibleTextProps = Object.keys(response).filter(key => 
+            typeof response[key] === 'string' && 
+            response[key].length > 10 && 
+            !key.includes('id') && 
+            !key.includes('time')
+          );
+          
+          if (possibleTextProps.length > 0) {
+            responseText = response[possibleTextProps[0]];
+          }
+        }
+      }
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.text || response.answer || 'Recebi sua mensagem, mas não tenho certeza de como responder.',
+        text: responseText,
         isUser: false,
         timestamp: new Date()
       };
@@ -115,15 +326,31 @@ const Index = () => {
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error:', error);
+      
+      // Determinar a mensagem de erro específica
+      const errorDetails = error.message || 'Erro desconhecido';
+      
       toast({
         title: "Erro de Conexão",
-        description: "Não foi possível conectar ao agente de IA. Verifique se o servidor está rodando em localhost:3001",
+        description: `Não foi possível conectar ao agente de IA em ${config.api.getFullUrl()}. Erro: ${errorDetails}`,
         variant: "destructive",
       });
       
+      // Criar mensagem de erro mais específica para o usuário
+      let errorText = 'Desculpe, estou com dificuldades para me conectar aos servidores.';
+      
+      // Se for um erro de rede, oferecer sugestões mais úteis
+      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+        errorText += ' Verifique sua conexão com a internet ou se o servidor está online.';
+      } else if (error.message.includes('Erro na comunicação com a API')) {
+        errorText += ` Código de erro: ${error.message.split(':')[1] || 'desconhecido'}.`;
+      }
+      
+      errorText += ' Por favor, tente novamente mais tarde.';
+      
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'Desculpe, estou com dificuldades para me conectar aos meus servidores. Tente novamente mais tarde.',
+        text: errorText,
         isUser: false,
         timestamp: new Date()
       };

@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 // Componente que protege rotas exigindo autenticação
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   // Verificar se o usuário está logado
-  const isAuthenticated = localStorage.getItem('isLoggedIn') === 'true';
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
   
   if (!isAuthenticated) {
     // Redirecionar para a página de login se não estiver autenticado
