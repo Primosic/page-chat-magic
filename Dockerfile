@@ -1,5 +1,6 @@
 # Estágio de build
-FROM node:18-alpine as build
+# Usando Node.js 18.18.0 conforme requerido pelas dependências
+FROM node:18.18.0-alpine as build
 
 # Definir diretório de trabalho
 WORKDIR /app
@@ -7,11 +8,14 @@ WORKDIR /app
 # Copiar arquivos de configuração de dependências
 COPY package.json package-lock.json ./
 
-# Instalar dependências
-RUN npm ci
+# Instalar dependências com flags para ignorar alertas de compatibilidade
+RUN npm ci --no-audit --no-fund --loglevel=error
 
 # Copiar código-fonte
 COPY . .
+
+# Substituir a URL da API para o endereço de produção
+RUN sed -i 's|http://localhost:3001|http://177.131.143.123:3001|g' src/pages/Index.tsx
 
 # Gerar build de produção
 RUN npm run build

@@ -12,6 +12,7 @@ interface LoginState {
   lastAttemptTime: number | null;
   isLocked: boolean;
   lockoutEndTime: number | null;
+  loginAttempts?: Array<{ timestamp: number; username: string; success: boolean }>;
 }
 
 const Login = () => {
@@ -31,7 +32,8 @@ const Login = () => {
       attempts: 0,
       lastAttemptTime: null,
       isLocked: false,
-      lockoutEndTime: null
+      lockoutEndTime: null,
+      loginAttempts: []
     };
   });
 
@@ -40,14 +42,16 @@ const Login = () => {
     if (loginState.isLocked && loginState.lockoutEndTime) {
       const now = Date.now();
       if (now > loginState.lockoutEndTime) {
-        // Desbloquear se o tempo de bloqueio já passou
+        // Desbloquear e resetar tentativas se o tempo de bloqueio já passou
         setLoginState(prev => ({
           ...prev,
+          attempts: 0,
           isLocked: false,
           lockoutEndTime: null
         }));
         localStorage.setItem('loginState', JSON.stringify({
           ...loginState,
+          attempts: 0,
           isLocked: false,
           lockoutEndTime: null
         }));
@@ -66,11 +70,13 @@ const Login = () => {
           if (currentTime > (loginState.lockoutEndTime || 0)) {
             setLoginState(prev => ({
               ...prev,
+              attempts: 0,
               isLocked: false,
               lockoutEndTime: null
             }));
             localStorage.setItem('loginState', JSON.stringify({
               ...loginState,
+              attempts: 0,
               isLocked: false,
               lockoutEndTime: null
             }));
@@ -103,35 +109,54 @@ const Login = () => {
       return;
     }
 
-    // Validar credenciais
-    if (username === 'privacidade' && password === 'dpp@2025') {
+    // Remover espaços extras e converter para minúsculas para evitar problemas comuns
+    const trimmedUsername = username.trim().toLowerCase();
+    const trimmedPassword = password.trim().toLowerCase();
+    const expectedUsername = 'privacidade'.toLowerCase();
+    const expectedPassword = 'dpp@2025'.toLowerCase();
+    
+    // Registrar tentativa de login (sem senha por segurança)
+    const loginAttempt = {
+      timestamp: Date.now(),
+      username: trimmedUsername,
+      success: trimmedUsername === expectedUsername && trimmedPassword === expectedPassword
+    };
+    
+    // Adicionar ao histórico de tentativas (limitando a 10 registros)
+    const loginAttempts = Array.isArray(loginState.loginAttempts) ? 
+      [loginAttempt, ...loginState.loginAttempts].slice(0, 10) : 
+      [loginAttempt];
+    
+    if (trimmedUsername === expectedUsername && trimmedPassword === expectedPassword) {
       // Login bem-sucedido
-      localStorage.setItem('isLoggedIn', 'true');
-      
-      // Resetar estado de login
-      const resetState = {
+      // Limpar contagem de tentativas e adicionar registro do login bem-sucedido
+      const newLoginState = {
         attempts: 0,
         lastAttemptTime: null,
         isLocked: false,
-        lockoutEndTime: null
+        lockoutEndTime: null,
+        loginAttempts: loginAttempts
       };
-      setLoginState(resetState);
-      localStorage.setItem('loginState', JSON.stringify(resetState));
       
-      // Redirecionar para a página principal
+      setLoginState(newLoginState);
+      localStorage.setItem('loginState', JSON.stringify(newLoginState));
+      
+      // Salvar estado de autenticação
+      localStorage.setItem('isAuthenticated', 'true');
+      
+      // Redirecionar para o chat
       navigate('/');
       
-      // Limpar campos
-      setUsername('');
-      setPassword('');
-      setError(null);
-      
+      toast({
+        title: "Login bem-sucedido",
+        description: "Bem-vindo ao Chat DPP",
+      });
     } else {
-      // Login falhou
+      // Incrementar contagem de tentativas e verificar bloqueio
       const newAttempts = loginState.attempts + 1;
       const now = Date.now();
       
-      if (newAttempts >= 3) {
+      if (newAttempts >= 5) {
         // Bloquear conta por 15 minutos
         const lockoutEndTime = now + (15 * 60 * 1000); // 15 minutos em milissegundos
         
@@ -139,7 +164,8 @@ const Login = () => {
           attempts: newAttempts,
           lastAttemptTime: now,
           isLocked: true,
-          lockoutEndTime: lockoutEndTime
+          lockoutEndTime: lockoutEndTime,
+          loginAttempts: loginAttempts
         };
         
         setLoginState(newState);
@@ -159,13 +185,14 @@ const Login = () => {
           attempts: newAttempts,
           lastAttemptTime: now,
           isLocked: false,
-          lockoutEndTime: null
+          lockoutEndTime: null,
+          loginAttempts: loginAttempts
         };
         
         setLoginState(newState);
         localStorage.setItem('loginState', JSON.stringify(newState));
         
-        setError(`Credenciais inválidas. Tentativa ${newAttempts} de 3.`);
+        setError(`Credenciais inválidas. Tentativa ${newAttempts} de 5.`);
       }
     }
   };

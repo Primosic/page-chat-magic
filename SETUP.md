@@ -51,9 +51,87 @@ npm run preview
 
 Este comando permite verificar se o build de produu00e7u00e3o estará funcionando corretamente antes da implantau00e7u00e3o.
 
-## Implantação em Produu00e7u00e3o
+## Implantação em Produção
 
-### Opa00e7u00e3o 1: Servidor Web Estático (Nginx, Apache)
+### Opação 1: Docker (Recomendado para todos os ambientes)
+
+Este projeto inclui configurações para implantação via Docker, executando na porta 8080. Esta é a opção **recomendada** especialmente para servidores Ubuntu com versões antigas do Node.js (como v12.x).
+
+#### Requisitos mínimos:
+- Docker 19.03.0 ou superior
+- Docker Compose 1.27.0 ou superior (opcional)
+
+#### 1. Construir a imagem Docker
+
+```bash
+sudo docker build -t chat-dpp:latest .
+```
+
+#### 2. Executar o container
+
+```bash
+# Execução básica na porta 8080
+sudo docker run -d -p 8080:8080 --name chat-dpp chat-dpp:latest
+
+# Para verificar os logs do container
+sudo docker logs chat-dpp
+```
+
+#### 3. Verificar se o container está em execução
+
+```bash
+sudo docker ps
+```
+
+#### 4. Acessar a aplicação
+
+Acesse http://localhost:8080 ou http://[seu-ip-servidor]:8080
+
+#### 5. Gerenciar o container
+
+```bash
+# Parar o container
+sudo docker stop chat-dpp
+
+# Reiniciar o container
+sudo docker restart chat-dpp
+
+# Remover o container
+sudo docker rm -f chat-dpp
+```
+
+### Docker Compose (Ambiente com Múltiplos Serviços)
+
+Se você precisar executar tanto o frontend quanto a API backend, você pode usar Docker Compose. Crie um arquivo `docker-compose.yml` na raiz do projeto:
+
+```yaml
+version: '3'
+services:
+  frontend:
+    build: .
+    ports:
+      - "8080:8080"
+    restart: always
+  
+  # Descomente se quiser executar a API no mesmo ambiente
+  # api:
+  #   image: [imagem-da-sua-api]
+  #   ports:
+  #     - "3001:3001"
+  #   volumes:
+  #     - api-data:/data
+
+# volumes:
+#   api-data:
+```
+
+Para executar:
+
+```bash
+sudo docker-compose up -d
+```
+
+### Opação 2: Servidor Web Estático (Nginx, Apache)
 
 1. Copie o conteúdo da pasta `dist/` para o diretório de hospedagem do seu servidor web
 

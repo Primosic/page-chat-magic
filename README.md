@@ -15,7 +15,7 @@ Este projeto implementa uma interface de chat para interagir com um assistente d
 - **Comunicação com API**: Integração com API externa para processamento de mensagens
 - **Identidade Visual Consistente**: Favicon na aba do navegador e elementos visuais alinhados com a identidade da marca
 - **Sistema de Autenticação**: Tela de login com credenciais predefinidas para controle de acesso
-- **Mecanismo de Segurança**: Limite de três tentativas de login com bloqueio temporário
+- **Mecanismo de Segurança**: Limite de cinco tentativas de login com bloqueio temporário
 - **Proteção de Rotas**: Acesso ao chat condicionado à autenticação bem-sucedida
 
 ### Requisitos Técnicos
@@ -151,13 +151,15 @@ public/
 ### 5. Sistema de Autenticação
 
 - **Tela de Login Dedicada**: Interface moderna com o logotipo no tema escuro
-- **Credenciais Predefinidas**: Acesso mediante usuário e senha configurados (usuário: "privacidade", senha: "dpp@2025")
-- **Limite de Tentativas**: Máximo de 3 tentativas de login permitidas
+- **Credenciais Predefinidas**: Acesso mediante usuário e senha configurados (credenciais não divulgadas na documentação por segurança)
+- **Limite de Tentativas**: Máximo de 5 tentativas de login permitidas
 - **Bloqueio Temporário**: Bloqueio por 15 minutos após exceder o limite de tentativas
 - **Contador Regressivo**: Exibição do tempo restante até nova tentativa ser permitida
 - **Feedback Visual**: Indicação clara de erros e instruções para contato com suporte
 - **Persistência de Status**: Estado de autenticação e bloqueio mantidos via localStorage
 - **Botão de Logout**: Opção para encerrar sessão no cabeçalho da interface principal
+- **Tratamento de Entrada**: Remoção automática de espaços extras e insensibilidade a maiúsculas/minúsculas
+- **Auditoria de Login**: Registro das últimas 10 tentativas de login com data/hora e resultado
 
 ### 6. Proteção de Rotas
 
